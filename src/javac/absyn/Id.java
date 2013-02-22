@@ -1,0 +1,34 @@
+package javac.absyn;
+
+import javac.symbol.Symbol;
+import javac.type.STRING;
+import javac.util.Position;
+
+public class Id extends Expr {
+	
+	public Symbol sym;
+
+	public Id(Position pos, Symbol sym) {
+		super(pos);
+		this.sym = sym;
+		this.size=1;
+		hasSideEffect=false;
+	}
+	public Id(Position pos, Symbol sym,javac.type.Type infT) {
+		super(pos);
+		this.sym = sym;
+		this.size=1;
+		hasSideEffect=false;
+		inferType=infT;
+	}
+	
+	@Override
+	public String toString() {
+		return sym.toString();
+	}
+
+	@Override
+	public void accept(NodeVisitor visitor) {
+		visitor.visit(this);
+	}
+}

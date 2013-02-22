@@ -1,0 +1,26 @@
+native int readInt();
+native char readChar();
+native int printInt(int i);
+native int printChar(char c);
+native int printString(string s);
+native int printLine(string s);
+native char chr(int k11);
+native int ord(char k11);
+native int _malloc(int k11);
+native int _strcmp(int k11, int k12);
+native string _intToString(int k11);
+native string _charToString(char k11);
+native int _strlen(string k11);
+native string _strcat(string k11, string l11);
+native string substring(string s11, int l11, int length);
+native string readString(); 
+native string readLine();
+native int parseInt(string s11);
+
+native int fillIntArray(int[] a11, int v11);/* {
+	  int i;
+	  for (i = 0; i < a11.length; i = i+1) {
+	    a11[i] = v11;
+	  }
+	  return 1;
+}*/

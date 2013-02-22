@@ -1,0 +1,10 @@
+varDecl in Record conflicts with global:acc
+varDecl in Record conflicts with local:acc
+comparison between null and record:acc
+comparison between same record type:acc
+comparison between different record type:reject
++ between array:reject
+(a,b)=(3,4) and  a=3||4&&5+!!6+7:acc
+record integer;integer a;a=(f().a=new integer);//ACC
+functionHead nonexisting type:reject
+functionCall not a function:reject

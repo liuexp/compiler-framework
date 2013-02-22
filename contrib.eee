@@ -1,0 +1,32 @@
+native int readInt();
+native char readChar();
+native string readString();
+native string readLine();
+
+native int printInt(int i);
+native int printChar(char c);
+native int printString(string s);
+native int printLine(string s);
+
+native int ord(char c);
+native char chr(int i);
+
+int parseInt(string s) {
+  /* TODO */
+	return 0;
+}
+
+string substring(string s, int start, int len) {
+  /* TODO */
+	return "";
+}
+
+int fillIntArray(int[] a, int v) {
+  int i;
+ 
+  for (i = 0; i < a.length; i = i+1) {
+    a[i] = v;
+  }
+	return 0;
+}
+

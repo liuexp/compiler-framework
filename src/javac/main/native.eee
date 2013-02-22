@@ -1,0 +1,272 @@
+__strcmp:   			
+    lb $k0, 0($a0)
+    lb $k1, 0($a1)
+    blt $k0, $k1, __strcmp_less
+    blt $k1, $k0, __strcmp_greater
+    beq $k0, $zero, __strcmp_equal
+__strcmp_loop:
+    addi $a0, $a0, 1
+    addi $a1, $a1, 1
+    lb $k0, 0($a0)
+    lb $k1, 0($a1)
+    blt $k0, $k1, __strcmp_less
+    blt $k1, $k0, __strcmp_greater
+    beq $k0, $zero, __strcmp_equal
+    j __strcmp_loop
+__strcmp_less:				
+    addiu $v0, $zero, -1
+    jr $ra
+__strcmp_greater:
+    li $v0, 1
+    jr $ra
+__strcmp_equal:
+    li $v0, 0
+    jr $ra
+
+__intToString:
+    li $k0, 0
+    bge $a0, $zero, intToString_l1
+    li $k0, 1
+    neg $a0, $a0
+intToString_l1:
+    sw $a0,-4($sp)
+    addiu $k1, $zero,1
+intToString_l2:
+    addi $k1, $k1, 1
+    div $a0, $a0, 10
+    bne $a0, $zero, intToString_l2
+    addu $a0, $k1, $k0 
+    li $v0, 9
+    move $k1, $a0
+    syscall
+    lw $a0,-4($sp)
+    beq $k0, $zero, intToString_l5
+    li $k0, 45
+    sb $k0, 0($v0)
+intToString_l5:
+    add $k1, $v0, $k1
+    addi $k1, $k1, -1
+    sb $zero, 0($k1)    
+    addi $k1, $k1, -1
+intToString_l4:
+    rem $k0, $a0, 10
+    addi $k0, $k0, 48
+    sb $k0, 0($k1)
+    addi $k1, $k1, -1
+    div $a0, $a0, 10
+    bne $a0, $zero, intToString_l4
+    jr $ra
+
+__charToString: 		#done
+    li $a0, 2
+    li $v0, 9
+    syscall
+    lb $a0, 0($sp)
+    sb $a0, 0($v0)
+    sb $zero, 1($v0)
+    jr $ra
+
+__strlen:
+    li $v0, 0
+    lb $k0, 0($a0)
+    beq $k0, $zero, _strlen_end
+_strlen_begin:
+    addi $a0, $a0, 1
+    addi $v0, $v0, 1
+    lb $k0, 0($a0)
+    bne $k0, $zero, _strlen_begin
+_strlen_end:
+    jr $ra
+
+__strcat:	
+    li $k1, 1
+    lb $v0, 0($a0)
+    sw $a0,0($sp)
+    beq $v0, $zero, _strlen1_end
+_strlen1_begin:
+    addi $a0, $a0, 1
+    addi $k1, $k1, 1
+    lb $v0, 0($a0)
+    bne $v0, $zero, _strlen1_begin
+_strlen1_end:
+    move $k0,$a1
+    lb $v0, 0($k0)
+    beq $v0, $zero, _strlen2_end
+_strlen2_begin:
+    addi $k0, $k0, 1
+    addi $k1, $k1, 1
+    lb $v0, 0($k0)
+    bne $v0, $zero, _strlen2_begin
+_strlen2_end:
+    move $a0,$k1
+    li $v0,9
+    syscall
+    move $k0, $v0
+    lw $a0,0($sp)
+    lb $k1, 0($a0)
+    beq $k1, $zero, _strcat_l1_end
+_strcat_l1:
+    sb $k1, 0($k0)
+    addi $a0, $a0, 1
+    addi $k0, $k0, 1
+    lb $k1, 0($a0)
+    bne $k1, $zero, _strcat_l1
+_strcat_l1_end:
+    lb $k1, 0($a1)
+    beq $k1, $zero, _strcat_l2_end
+_strcat_l2:
+    sb $k1, 0($k0)
+    addi $a1, $a1, 1
+    addi $k0, $k0, 1
+    lb $k1, 0($a1)
+    bne $k1, $zero, _strcat_l2
+_strcat_l2_end:
+    sb $zero, 0($k0)
+    jr $ra
+
+.data
+__eol:
+ .asciiz "\n"
+.text
+_printLine:
+    #lw $a0, 0($sp)
+    li $v0, 4
+    syscall
+    la $a0,__eol
+    syscall
+    jr $ra
+
+_ord:		#myself
+	lb	$v0 0($sp)
+	jr $ra
+
+_chr: 		#myself
+	lb	$v0 0($sp)
+	jr $ra
+	
+
+.data
+_empty_string:
+ .asciiz ""
+.text
+_substring:  ##string s11, int l11, int length
+	addu $k0,$a0,$a1
+	addu $k0,$a2,$k0
+	addiu $a0,$a2,1
+	li $v0,9
+	syscall
+	addu $k1,$a2,$v0
+	sb $zero,0($k1)
+	beq $k1,$v0,_substring_end
+	_substring_loop:
+	addiu $k1,$k1,-1
+	addiu $k0,$k0,-1
+	lb $a0,0($k0)
+	sb $a0,0($k1)
+	bne $k1,$v0,_substring_loop
+	_substring_end:
+	jr $ra
+
+.text
+_readLine:
+
+addu $sp, $sp,-24
+sw $ra, 24($sp)
+li $v0,12
+syscall
+sw $v0, 12($sp)
+lw $t0,12($sp)
+sw $t0,16($sp)
+readLine_L27:
+j readLine_L26
+readLine_L24:
+lw $a0, 16($sp)
+sw $a0, 0($sp)
+jal __charToString
+sw $v0, 8($sp)
+lw $a0, 20($sp)
+sw $a0, 0($sp)
+lw $a1, 8($sp)
+sw $a1, -4($sp)
+jal __strcat
+sw $v0, 4($sp)
+sw $v0,20($sp)
+readLine_L26:
+lw $t0, 16($sp)
+addiu $k1,$zero, 10
+bne $t0,$k1,readLine_L24
+readLine_L25:
+lw $v0, 20($sp)
+j _readLine_exit
+
+_readLine_exit:
+lw $ra, 24($sp)
+addu $sp, $sp,24
+jr $ra
+
+.text
+_parseInt:
+
+addu $sp, $sp,-48
+sw $ra, 44($sp)
+addiu $t0,$zero, 0
+addiu $t1,$zero, 0
+sw $t0,40($sp)
+sw $t1,36($sp)
+j parseInt_L31
+parseInt_L28:
+lw $t0, 48($sp)
+lw $t1, 36($sp)
+addu $v1 , $t0, $t1
+lb $t2,0($v1)
+move $a0, $t2
+sw $a0, 0($sp)
+jal _ord
+sw $v0, 32($sp)
+lw $t0, 40($sp)
+addiu $k1,$zero, 10
+mul $t1 , $t0, $k1
+lw $v1, 32($sp)
+addu $t2 , $t1, $v1
+addiu $k1,$zero, 48
+subu $t3 , $t2, $k1
+sw $t3,40($sp)
+parseInt_L30:
+lw $t0, 36($sp)
+add $t1 , $t0, 1
+sw $t1,36($sp)
+parseInt_L31:
+lw $a0, 48($sp)
+sw $a0, 0($sp)
+jal __strlen
+sw $v0, 4($sp)
+lw $t0, 36($sp)
+blt $t0,$v0,parseInt_L28
+parseInt_L29:
+lw $v0, 40($sp)
+j _parseInt_exit
+
+_parseInt_exit:
+lw $ra, 44($sp)
+addu $sp, $sp,48
+jr $ra
+
+.text
+_fillIntArray:
+
+#sw $ra, -8($sp)
+addiu $k0,$zero, 0
+lw $k1, 0($a0)
+bge $k0,$k1,fillIntArray_L33
+fillIntArray_L32:
+sll $v0 , $k0, 2
+addu $v0 , $v0, $a0
+sw $a1,4($v0)
+fillIntArray_L34:
+add $k0 , $k0, 1
+fillIntArray_L35:
+blt $k0,$k1,fillIntArray_L32
+fillIntArray_L33:
+#lw $ra, -8($sp)
+jr $ra
+

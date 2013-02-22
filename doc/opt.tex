@@ -1,0 +1,228 @@
+\documentclass[a4paper]{article}
+\usepackage{indentfirst}
+\usepackage{amsmath,amsthm,amssymb}
+\usepackage{fancybox}
+\usepackage{fancyvrb}
+%\usepackage{minted}
+\usepackage{color}
+\usepackage{makeidx}
+\usepackage{xeCJK}
+\setCJKmainfont[BoldFont={Adobe Heiti Std}, ItalicFont={AR PL New Kai}]{Adobe Song Std}
+\usepackage{graphicx}
+\usepackage{geometry}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{array}
+\usepackage{gnuplot-lua-tikz}
+\usepackage{cite}
+\usepackage{url}
+\usepackage{enumerate}
+%\geometry{left=1.5cm, right=1.5cm, top=1.5cm, bottom=1.5cm}
+\usepackage{wrapfig}
+%\usepackage{lettrine}
+%\usepackage{abstract}
+
+% THEOREMS -------------------------------------------------------
+\newtheorem{Thm}{Theorem}
+\newtheorem{Cor}[Thm]{Corollary}
+\newtheorem{Conj}[Thm]{Conjecture}
+\newtheorem{Lem}[Thm]{Lemma}
+\newtheorem{Prop}[Thm]{Proposition}
+\newtheorem{Prob}{Problem}
+\newtheorem{Exam}{Example}
+\newtheorem{Def}[Thm]{Definition}
+\newtheorem{Rem}[Thm]{Remark}
+\newtheorem{Not}[Thm]{Notation}
+\newtheorem*{Sol}{Solution}
+
+% MATH -----------------------------------------------------------
+\newcommand{\norm}[1]{\left\Vert#1\right\Vert}
+\newcommand{\abs}[1]{\left\vert#1\right\vert}
+\newcommand{\set}[1]{\left\{#1\right\}}
+\newcommand{\Real}{\mathbb R}
+\newcommand{\eps}{\varepsilon}
+\newcommand{\To}{\longrightarrow}
+\newcommand{\BX}{\mathbf{B}(X)}
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\CommentS}[1]{}
+% CODE ----------------------------------------------------------
+\newcommand{\PltImg}[1]{
+\begin{center}
+\input{#1}
+\end{center}
+}
+
+\newenvironment{code}%
+{\vglue 5pt \VerbatimEnvironment\begin{Sbox}\begin{minipage}{0.9\textwidth}\begin{small}\begin{Verbatim}}%
+{\end{Verbatim}\end{small}\end{minipage}\end{Sbox}\setlength{\shadowsize}{2pt}\shadowbox{\TheSbox}\vglue 5pt}
+
+
+\usepackage{pgf}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows,automata}
+%\usepackage[latin1]{inputenc}
+\usepackage{verbatim}
+\usepackage{listings}
+%\usepackage{algorithmic} %old version; we can use algorithmicx instead
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode} %for pseudo code, include algorithmicsx automatically
+
+\lstdefinelanguage{Smalltalk}{
+  morekeywords={self,super,true,false,nil,thisContext}, % This is overkill
+  morestring=[d]',
+  morecomment=[s]{"}{"},
+  alsoletter={\#:},
+  escapechar={!},
+  literate=
+    {BANG}{!}1
+    {UNDERSCORE}{\_}1
+    {\\st}{Smalltalk}9 % convenience -- in case \st occurs in code
+    % {'}{{\textquotesingle}}1 % replaced by upquote=true in \lstset
+    {_}{{$\leftarrow$}}1
+    {>>>}{{\sep}}1
+    {^}{{$\uparrow$}}1
+    {~}{{$\sim$}}1
+    {-}{{\sf -\hspace{-0.13em}-}}1  % the goal is to make - the same width as +
+    %{+}{\raisebox{0.08ex}{+}}1		% and to raise + off the baseline to match -
+    {-->}{{\quad$\longrightarrow$\quad}}3
+	, % Don't forget the comma at the end!
+  tabsize=2
+}[keywords,comments,strings]
+
+\lstloadlanguages{C++, Lisp, Haskell, Python, Smalltalk, Mathematica} %, Java,bash,Gnuplot,make,Matlab,PHP,Prolog,R,Ruby,sh,SQL,TeX,XML}
+
+%--------------Now the document begins------------------
+
+\author{Jingcheng Liu ~(~刘景铖~) \thanks{F1003028 5100309243 } }
+\title{On Optimizing the Tiger Compiler}
+\begin{document}
+\maketitle
+\section{Introduction}
+Tiger is a compiler.
+\section{Code Rewriting Module}
+The most form of code rewriting would be using regex.
+But this won't go too far as it could only safely rewrite
+very simple and limited form of syntatic construct.
+
+Therefore, I first implemented this module based on the absyn,
+then it evolved to also consider IR and finally the generated code.
+
+To put it simply, all work is done where it is easiest to do.
+As a side remark, this module is very crucial to reducing code size, stack/memory usage, and
+even compiling time.
+
+As another side remark, I would like to point out that the translated tiger-testcase is quite
+different from the original one, and this doesn't make sense to me and my policy of register
+allocation, as there're so many stuffs like \verb|substring(x,0,1)[0]|, and also \verb|i[0]|,\verb|count[0]|
+that throught the whole function, there's no other use except as a temp(i.e. no \verb|i[k]|,not as a parameter
+for some function call).So another application of this module is to rewrite these quirky form into some normal
+form w.r.t my register allocation policy.This greatly improves the performance on Maxflow, Horse/Horse2/Horse3
+from a little better than the second best, to eminently better than the second best.
+
+Specifically, this module is originally designed as a component for my compiler killer.
+The basic idea is simple, just by the commutativity and associativity of the binary operation + , 
+I can make the absyn more balanced,this not only reduce the stack use greatly,and could possibly
+introduce lots local common subexpression, just like \verb|a+a+a+a+a+a+a+a -> ((a+a)+(a+a))+((a+a)+(a+a))|
+
+Of course, the details are quite complicated, such as \verb|a+(a=1)+a+a| can't be associated arbitrarily.
+And if $z$ is string and $a$ is int, then \verb|z+a+a| is not the same as \verb|z+(a+a)|.
+
+Moreover, even if you have built a rather balanced tree, inserting a new node could make it very unbalanced,
+or you have to pay too high a price in parsing to make it balanced.
+
+I gurantees the correctness of rotation and exchanging two nodes by infering whether the expression might have side effect,
+and infering what type it would definitely have.I make it balanced by some simple heuristics and repeatedly rotating and
+exchanging,but this wouldn't exceed 5-8 times in total.Even so my final version of compiler spends most of the time in parsing.
+\section{CSE on pseudo-SSA form}
+The original form if SSA form introduced the $\phi$ function to make things through basic block, but I didn't use that,
+I use it only within basic block, and I wouldn't actually generated another temp for the second assignment, I just need
+to record something I call it SSA number to fill an expression table, this would make local common subexpression elimination
+possible within basic block without lots of temps or lots of stack/memory uses.
+
+And this way of local common subexpression elimination can virtuallly eliminate everything redundant and could possibly be recognized
+within a basic block.With this I reduce the code size when compiling my killer to $280.5KB$.
+\section{Dead Code Elimination}
+I wrote the simplest form of dead code elimination, I scan from backwards and when I see there's no use of some
+temp between two defines, I kill the previous define, and I would also kill unused labels and functions.
+Actually this is also a way of enlarging the basic blocks.
+This reduce the total instructions of Spill to only 35.
+
+\section{General Framework for Parameters Tuning via Machine Learning}
+This is not a mature idea, and is not fully verified as it may not generalize well 
+with the current state of the art of ML.
+Anyway I'll try to state clearly what I've already come up with, and under what circumstances
+would this work great.
+
+To put it simply, when it comes to optimizing a compiler,
+there's lots of things to consider, and for each one of them
+we could always develop certain heuristics that works pretty
+well for that particular scenario.For instance, Mathematica
+users know that calling Java methods inside Mathematica 
+can be quite expensive, one way to work this out (automatically and mechanically) would certainly
+be to reduce the number of calls and therefore the communication cost.
+This is essentially doing function inlining, now the problem becomes
+when do you inline, and what do you inline, and how do you inline.
+
+For this particular example, we could already see that 3 parts of work is involved.
+
+The first one is a multi-class classification problem, in general we should probably build 
+some database of patterns, and carefully select some feature sets for the recognition.
+
+The second one involves breaking the original program into suitable sizes of pieces.
+For different scenario, what's decomposable is usually different, so essentially this is
+trying to specify some kind of granularity, or put it another way is to build such a 
+database of granularity for different scenario that's recognized by the first step.
+
+The third and the final one is the trickest and most difficult one, and that's where machine
+learning really comes to play(although the first one usually needs ML already).
+Of course, for this particular example and any specifically given example, one can examine
+carefully and come up with some heuristics to make it work.
+Generally an automatic version would certainly be desirable, but to achieve, a probable way would be first find
+some canonical form of cost model for various architecture and target runtime environment,
+next would be to find some canonical form of various semantics preserving transformation to consider,
+finally, one develop some theory of theres spaces, subspaces, and the transformations between them, and
+various representations of various objects, and in analogy of Gaussian elimination of linear algebra,
+one obtains an algorithm for generally reducing and transforming between programs.(this generally is impossible
+due to Turing and Goedel but in the above scenario we only consider limited and specifically given transformations).
+
+For the third problem, that way would probably take lots of work, I think an approximate way would be to just use
+machine learning once one have already finished the first 2 steps( of the third problem ). As once we've done
+the first 2 step, this is just yet another multi-class classification problem, given
+the compiler could return enough information involving feedback and recall of performance.
+But of course, even with PCA or any other dimension reduction, this could still be a large-scale
+version of multi-class classification problem, as the parameter would probably also include the 
+number of iterations to apply any transformation.
+
+Specifically, I'd like to introduce my little experiment in my tiger compiler.
+
+The first application would be when doing register allocation. Policy such as linear scan
+is obviously designed for nested loops, so when spotted constructs like lots of loops and
+nested loops, it's definitely the best option. And policy such as linear scan or graph
+coloring that fix the map between temps and registers, would perform really bad if there's
+lots of function calls that leads to every basic block is really small, much worse than 
+even with a pseudo-register allocation,unless one is really careful enough to avoid such scenario, 
+but it seems none of our classmates who adopted those policies was aware of this.
+
+So basically my way of working it out is to let the compiler adaptively select a register allocation
+for every functions. The primitive feature gather directly by compiler includes code size, temp numbers,
+function call numbers, argument number, argument number of function calls, syscall numbers, native call numbers,
+number of accumulative arguments of all calls, loop numbers, whether function call could have side effect,etc.
+To obtain a linear separating hyperplane, I also include some transformed features like the number of calls
+times the number of arguments of the current functions.
+What remains is just a multi-class classification.
+
+The next application would be when doing function inlining,I would only inline a function f into a function g
+if the result obtained wouldn't use more than 27 registers.Namely, I enlarge those small function that
+under-utilize the register available, while maintaining those that already takes full advantage of available registers.
+This is the basic heuristics though, in actual implementation I also treated it as a classification problem like the previous one.
+
+The performance result is eminent, I was once only on top of 16 cases out of 33, after implemented this I got 26 cases out of 33.
+Together with previously stated optimizations, I finally got 28 out of 33 cases on top.
+Of course most of what remains could actually be overcome with the same idea though, it just takes time, as 3 of what remains invovles only extending
+the original standardized string library to include various way of string representation and treatment, such as storing string as \verb|char []|
+would make strlen much faster, and storing string indirectly as another pointer would make substring and strlen much faster.
+But it only works for some cases(particulary the remaining cases), and when to use what representation could also be done via similar techniques.
+And 2 of what remains involves enabling linear scan on some function as it contains lots of loops, but my implementation of linear scan 
+hasn't been checked and tuned carefully as the deadline was already near then and I also have lots of other things to do.
+\end{document}
+ 
