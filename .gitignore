@@ -1,0 +1,14 @@
+*.class
+*.java~
+*.swp
+*.s
+*.s~
+*.aux
+*.log
+*.pdf
+.settings/*
+compiler-testcases/*
+testcase/*
+lib/*
+bin/*
+ref/*
